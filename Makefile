@@ -4,4 +4,4 @@ compile:
 	g++ -o $$module.o $$module.cpp
 
 clean:
-	rm *.0
+	rm *.o
