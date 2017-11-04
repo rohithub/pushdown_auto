@@ -3,19 +3,13 @@
 #include<fstream>
 #include<string>
 
-#define STATE_A 1
-#define INITIAL 0
-#define STATE_B 2
-#define STATE_C 3
-#define END 4
-#define DEBUG true
+#define INITIAL 	0
+#define STATE_COUNT 	1
+
+#define DEBUG 		true
+#define MAX_CHARS	26
 
 using namespace std;
-
- int state = INITIAL;
- int count_A = 0;
- int count_B = 0;
- int count_C = 0;
 
  char first_term = 0;
  char second_term = 0;
@@ -35,87 +29,195 @@ using namespace std;
     bool last;
  };
 
- Comparison allCompares[26];  //MAX NO of allowed conditions 
 
- int gotoComp[26]; //TODO: make -1 initially
+ Comparison allCompares[MAX_CHARS];  //MAX NO of allowed conditions 
 
- int numTerms = 0;
+ int gotoComp[MAX_CHARS]; //TODO: make -1 initially
+
+ int numTerms = 0; // Carries the maximum type of characters that are to be analysed
  int compares = 0;
- char componentsTochars[26];
- char countTermOfComponent[26];
+ char componentsTochars[MAX_CHARS];
+ char countTermOfComponent[MAX_CHARS];
+ int state = INITIAL;
+ unsigned int char_count[MAX_CHARS] = {0};
+ unsigned int curr_index = 0; //Points to the current index worked on
  
-bool pda(char inputChars){
-    bool reset = false;
+bool pda(char inputChars, Comparison *compiled_table){
     bool compare = false;
+    bool match_det = false;
     if(DEBUG){
         cout<<"Input char : "<<inputChars<<endl;
         cout<<"Current state : "<<state<<endl;
     }
     switch(state){
         case INITIAL:
-            if(inputChars == first_term){
-                state = STATE_A;
-                count_A++;
+            if(inputChars == componentsTochars[curr_index]){
+		state = STATE_COUNT;
+                char_count[curr_index]++;
             }
+	
             break;
-        case STATE_A:
-            if(inputChars == second_term){
-                state = STATE_B;
-                count_B++;
-            }
-            else if(inputChars == first_term){
-                count_A++;
-            }
-            else if(inputChars == third_term){
-                state = STATE_C;
-                count_C++;
-            }
-            else{
-                reset = true;
-            }
-            break;
-        case STATE_B:
-            if(inputChars == third_term){
-                state = STATE_C;
-                count_C++;
-                compare = true;
-            }
-            else if(inputChars == second_term){
-                count_B++;
-            }
-            else{
-                reset = true;
-            }
-            break;
-        case STATE_C:
-            if(inputChars == third_term){
-                count_C++;
-            }
-            else{
-                state = INITIAL;
-                compare = true;
-            }
-            break;
+
+	case STATE_COUNT:
+		if(curr_index < numTerms)
+		{		
+			if(inputChars == componentsTochars[curr_index])
+			{
+				char_count[curr_index]++;
+			}
+			else
+			{
+                		compare = true;
+				if(inputChars == componentsTochars[curr_index+1])
+				{
+					char_count[++curr_index]++;
+				}
+				else
+				{
+					for(int j=0; j<MAX_CHARS; j++)
+					{
+						char_count[j] = 0;	//Reset all counters before going to the initial state
+					}
+					curr_index = 0;
+					state=INITIAL;
+				}
+			}
+		}
+		else
+		{
+			// if we reach here, we are processing more characters than the max number from our conditions
+			for(int j=0; j<MAX_CHARS; j++)
+			{
+				char_count[j] = 0;	//Reset all counters before going to the initial state
+			}
+			curr_index = 0;
+			state=INITIAL;
+		}
+		break;
     }
+
+	if((compare == true) && (compiled_table[curr_index].progress == 0)) //Means we can do the compare right now
+	{
+		match_det = true;
+		for(int k=0; k<curr_index; k++) //Compare for all the events till now
+		{
+			
+			switch(compiled_table[k].operation){
+			case(LT):
+				if(compiled_table[k].comparisonValueTypeRight == IMM)
+				{
+					if(char_count[k] >= compiled_table[k].right)
+					{
+						match_det = false;
+						break;
+					}
+				}
+				else	//else compare with count value
+				{
+					if(char_count[k] >= char_count[compiled_table[k].right])
+					{
+						match_det = false;
+						break;
+					}
+					
+				}
+			break;
+
+			case(LTE):
+				if(compiled_table[k].comparisonValueTypeRight == IMM)
+				{
+					if(char_count[k] > compiled_table[k].right)
+					{
+						match_det = false;
+						break;
+					}
+				}
+				else	//else compare with count value
+				{
+					if(char_count[k] > char_count[compiled_table[k].right])
+					{
+						match_det = false;
+						break;
+					}
+					
+				}
+			break;
+
+			case(GT):
+				if(compiled_table[curr_index].comparisonValueTypeRight == IMM)
+				{
+					if(char_count[k] <= compiled_table[k].right)
+					{
+						match_det = false;
+						break;
+					}
+				}
+				else	//else compare with count value
+				{
+					if(char_count[k] <= char_count[compiled_table[k].right])
+					{
+						match_det = false;
+						break;
+					}
+					
+				}
+			break;
+
+			case(GTE):
+				if(compiled_table[curr_index].comparisonValueTypeRight == IMM)
+				{
+					if(char_count[k] < compiled_table[k].right)
+					{
+						match_det = false;
+						break;
+					}
+				}
+				else	//else compare with count value
+				{
+					if(char_count[k] < char_count[compiled_table[k].right])
+					{
+						match_det = false;
+						break;
+					}
+					
+				}
+			break;
+
+			case(EQ):
+				if(compiled_table[curr_index].comparisonValueTypeRight == IMM)
+				{
+					if(char_count[k] != compiled_table[k].right)
+					{
+						match_det = false;
+						break;
+					}
+				}
+				else	//else compare with count value
+				{
+					if(char_count[k] != char_count[compiled_table[k].right])
+					{
+						match_det = false;
+						break;
+					}
+					
+				}
+			break;
+			}
+		}
+	}
     if(DEBUG){
         cout<<"New state : "<<state<<endl;
-        cout<<"Count A : "<<count_A<<endl;
-        cout<<"Count B : "<<count_B<<endl;
-        cout<<"Count C : "<<count_C<<endl;
         cout<<"---------------------"<<endl;
     }
-    return compare && (count_A == count_B || count_A == count_C); 
+    return match_det; 
 
 }
 
 bool run(string in){
     bool match = false;
-    count_A = 0;
-    count_B = 0;
-    count_C = 0;
     state = INITIAL;
     for(int i = 0; i<in.length();i++){
-        if(pda(in.at(i))){
+        if(pda(in.at(i), allCompares)){
             match = true; 
             break;
         }
@@ -296,8 +398,8 @@ int main(){
     string expressionIn = "";
     bool match = false;
 
-    compile("0(i)1(j),i>=0&j>=0&i=j");
-    return 0;
+    compile("a(i)b(j)c(k),i>=0&j>=0&i=j");
+    //return 0;
     cout << "Enter the characters to be matched (3 only) = ";
     cin >> user_chars;
     first_term = user_chars[0];
