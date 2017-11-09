@@ -38,6 +38,10 @@ using namespace std;
  int compares = 0;
  char componentsTochars[MAX_CHARS];
  char countTermOfComponent[MAX_CHARS];
+ bool compareBit[MAX_CHARS];
+ int startCompareIndex[MAX_CHARS];
+ int endCompareIndex[MAX_CHARS];
+ 
  int state = INITIAL;
  unsigned int char_count[MAX_CHARS] = {0};
  unsigned int curr_index = 0; //Points to the current index worked on
@@ -289,9 +293,10 @@ void compile(string in){
     compares = 0;
     bool processingACompare = false;
     bool isComp;
+    int maxComponentSeen = -1;
+    int startDepthOfComparisonTable = 0;
     for(;i<in.length();i++){
         char ch = in.at(i);
-        cout<<"Comparison chars : "<<ch<<endl;
         if(ch == '&'){
             allCompares[compares].progress = true;
             allCompares[compares].last = false;
@@ -300,8 +305,17 @@ void compile(string in){
         }
         else if(ch == '|'){
             allCompares[compares].last = false;
-            compares++;
             processingACompare = false;
+            if(maxComponentSeen != -1){
+                compareBit[maxComponentSeen] = true;
+                startCompareIndex[maxComponentSeen] = startDepthOfComparisonTable;
+                endCompareIndex[maxComponentSeen] = compares;
+
+            }
+            maxComponentSeen = -1;
+            compares++;
+            startDepthOfComparisonTable = compares;
+            
         }
         else if(ch == '>'){
             allCompares[compares].operation = GT;
@@ -327,10 +341,12 @@ void compile(string in){
                 allCompares[compares].progress = false;
                 allCompares[compares].last = true;
                 isComp = isAlphabet(ch);
-                cout <<"isComp(Left) : "<<isComp<<endl;
                 if(isComp){
                     allCompares[compares].comparisonValueTypeLeft = COMP;
                     allCompares[compares].left = findComponentWithInputCountChar(ch);
+                    if(maxComponentSeen < allCompares[compares].left){
+                        maxComponentSeen = allCompares[compares].left;
+                    }
                 }
                 else{
                     allCompares[compares].comparisonValueTypeLeft = IMM;
@@ -349,10 +365,12 @@ void compile(string in){
             } // end of if(!processingACompare)
             else{
                 isComp =  isAlphabet(ch);
-                cout <<"isComp(Right) : "<<isComp<<endl;
                 if(isComp){
                     allCompares[compares].comparisonValueTypeRight = COMP;
                     allCompares[compares].right = findComponentWithInputCountChar(ch);
+                    if(maxComponentSeen < allCompares[compares].right){
+                        maxComponentSeen = allCompares[compares].right;
+                    }
                 }
                 else{
                     allCompares[compares].comparisonValueTypeRight = IMM;
@@ -365,7 +383,6 @@ void compile(string in){
                             break;
                         }
                         else{
-                            cout<<"Adding : "<<num1<<endl;
                             allCompares[compares].right = (allCompares[compares].right * 10) + num1;
                             i++;
                         }
@@ -374,12 +391,17 @@ void compile(string in){
             } // end of else of if(!processingACompare)
         } //end of big else
     } //end of second for    
-    
+  
+                cout<<"Max component seen : "<<maxComponentSeen<<endl;
+                cout<<"Max component seen : "<<maxComponentSeen<<endl;
+                compareBit[maxComponentSeen] = true;
+                startCompareIndex[maxComponentSeen] = startDepthOfComparisonTable;
+                endCompareIndex[maxComponentSeen] = compares;
     compares++;
     if(DEBUG){
-        cout<<"Detected components are : "<<endl;
+        cout<<"index,chars,compare bit,start comparison index, end comparison index"<<endl;
         for(int j = 0;j<numTerms;j++){
-            cout<<j<<" => char : "<<componentsTochars[j]<<"; with count term : "<<countTermOfComponent[j]<<endl;
+            cout<<j<<" , "<<componentsTochars[j]<<" , "<<compareBit[j]<<" , "<<startCompareIndex[j]<<" , "<<endCompareIndex[j]<<endl;
         }
 
         cout<<"Comparisons Detected are : "<<endl;
@@ -398,8 +420,8 @@ int main(){
     string expressionIn = "";
     bool match = false;
 
-    compile("a(i)b(j)c(k),i>=0&j>=0&i=j");
-    //return 0;
+    compile("a(i)b(j)c(k),i>=0&j>=0&i=j|i>=0&j>=0&k>=0&i=k");
+    return 0;
     cout << "Enter the characters to be matched (3 only) = ";
     cin >> user_chars;
     first_term = user_chars[0];
