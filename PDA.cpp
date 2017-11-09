@@ -417,26 +417,16 @@ void compile(string in){
 int main(){
     string user_chars;
     ifstream inputChars;
+    ifstream inputRegex;
     string expressionIn = "";
+    string regexIn = "";
     bool match = false;
 
-    compile("a(i)b(j)c(k),i>=0&j>=0&i=j|i>=0&j>=0&k>=0&i=k");
-    return 0;
-    cout << "Enter the characters to be matched (3 only) = ";
-    cin >> user_chars;
-    first_term = user_chars[0];
-    second_term = user_chars[1];
-    third_term = user_chars[2];
-
-    if(user_chars.length() == 3)
-    {	    
-    	cout << "Selected chars: " << first_term << ", " << second_term << ", " << third_term << endl;
+    inputRegex.open ("regex.txt");
+    if(inputRegex.is_open()){
+        getline(inputRegex,regexIn);
     }
-    else
-    {
-	cout << "Input Error: Length of the matching characters should be only 3!! " << endl;
-	return 1;
-    }
+    compile(regexIn);
     inputChars.open ("regexInput.txt");
     if(inputChars.is_open()){
         while(getline(inputChars,expressionIn)){
