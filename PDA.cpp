@@ -32,8 +32,6 @@ using namespace std;
 
  Comparison allCompares[MAX_CHARS];  //MAX NO of allowed conditions 
 
- int gotoComp[MAX_CHARS]; //TODO: make -1 initially
-
  int numTerms = 0; // Carries the maximum type of characters that are to be analysed
  int compares = 0;
  char componentsTochars[MAX_CHARS];
@@ -49,17 +47,12 @@ using namespace std;
 bool pda(char inputChars, Comparison *compiled_table){
     bool compare = false;
     bool match_det = false;
-    if(DEBUG){
-        cout<<"Input char : "<<inputChars<<endl;
-        cout<<"Current state : "<<state<<endl;
-    }
     switch(state){
         case INITIAL:
             if(inputChars == componentsTochars[curr_index]){
 		state = STATE_COUNT;
                 char_count[curr_index]++;
             }
-	
             break;
 
 	case STATE_COUNT:
@@ -100,11 +93,16 @@ bool pda(char inputChars, Comparison *compiled_table){
 		break;
     }
 
-	if((compare == true) && (compiled_table[curr_index].progress == 0)) //Means we can do the compare right now
+	if((compare == true) && (compareBit[curr_index] == 1)) //Means we can do the compare right now
 	{
 		match_det = true;
-		for(int k=0; k<curr_index; k++) //Compare for all the events till now
+		compare = false;
+		for(int k=startCompareIndex[curr_index]; k<=endCompareIndex[curr_index]; k++) //Compare for all the events till now
 		{
+    			if(DEBUG)
+			{
+        			cout<< "Input char : "<<inputChars << ", Operation " <<compiled_table[k].operation << ", Comparison type " << compiled_table[k].comparisonValueTypeRight << ", COMP value " << char_count[compiled_table[k].right] << endl;
+			}
 			
 			switch(compiled_table[k].operation){
 			case(LT):
@@ -123,7 +121,6 @@ bool pda(char inputChars, Comparison *compiled_table){
 						match_det = false;
 						break;
 					}
-					
 				}
 			break;
 
@@ -143,7 +140,6 @@ bool pda(char inputChars, Comparison *compiled_table){
 						match_det = false;
 						break;
 					}
-					
 				}
 			break;
 
@@ -163,7 +159,6 @@ bool pda(char inputChars, Comparison *compiled_table){
 						match_det = false;
 						break;
 					}
-					
 				}
 			break;
 
@@ -183,7 +178,6 @@ bool pda(char inputChars, Comparison *compiled_table){
 						match_det = false;
 						break;
 					}
-					
 				}
 			break;
 
@@ -203,15 +197,14 @@ bool pda(char inputChars, Comparison *compiled_table){
 						match_det = false;
 						break;
 					}
-					
 				}
 			break;
 			}
 		}
 	}
     if(DEBUG){
-        cout<<"New state : "<<state<<endl;
-        cout<<"---------------------"<<endl;
+        //cout<<"New state : "<<state<<endl;
+        //cout<<"---------------------"<<endl;
     }
     return match_det; 
 
@@ -427,6 +420,7 @@ int main(){
         getline(inputRegex,regexIn);
     }
     compile(regexIn);
+    //return(0);
     inputChars.open ("regexInput.txt");
     if(inputChars.is_open()){
         while(getline(inputChars,expressionIn)){
