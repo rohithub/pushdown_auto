@@ -1,10 +1,6 @@
-/* Checks for expression matching of form a^i.b^j.c^k | i,j,k>0 and i==j or i==k */
 #include<iostream>
 #include<fstream>
 #include<string>
-
-#define INITIAL 	0
-#define STATE_COUNT 	1
 
 #define DEBUG 		true
 #define MAX_CHARS	26
@@ -26,7 +22,8 @@ struct states{
 	grammer currentRules[NUM_RULES]; // What rules this states hold
 	int next_states[NUM_CHAR]; 	// The states that are child of this
 	bool isValid[NUM_CHAR];
-	unsigned countOfRules;				
+	unsigned countOfRules;
+	bool isEndState;				
 };
 
 char transition_char[NUM_CHAR];
@@ -107,61 +104,91 @@ string printRuleWithDot(grammer inputRule){
 }
 void createTable(void)
 {
-
-	// Make S0
+	// For a valid grammer, S) will always exist. Make S0
 	stt[0].state_num = 0;
 	for(int j = 0;j<rule_count;j++){
 		stt[0].currentRules[j] = lr0[j];
 	}
 	stt[0].countOfRules = rule_count;
-	for(int i=0;i<stt[0].countOfRules;i++)
-	{	
-		for(int j=0;j<num_transition_char;j++)
-		{	
-			if(stt[0].currentRules[i].rule.at(stt[0].currentRules[i].dot_pos) == transition_char[j])
-			{
-				if(!stt[0].isValid[j])
+	state_count++;
+
+	//Start exapnading the state diagram
+	for(int itr = 0; itr < state_count; itr++)
+	{
+		cout << "**** State " << itr << endl;
+		if(!stt[itr].isEndState)
+		{
+			for(int i=0;i<stt[itr].countOfRules;i++)
+			{	
+				
+				cout<<"        Count of Rules "<< i << endl;
+				for(int j=0;j < num_transition_char;j++)
 				{	
-					stt[0].next_states[j] = state_count + 1;
-					stt[0].isValid[j] = true;
-					state_count++;
-					stt[state_count].state_num = state_count;
-					stt[state_count].countOfRules = 0;
-
-					stt[state_count].currentRules[stt[state_count].countOfRules] = stt[0].currentRules[i];
-					stt[state_count].currentRules[stt[state_count].countOfRules].dot_pos++;	
-					stt[state_count].countOfRules++;
-					
-
-				}
-				else
-				{
-					cout<<"In second loop"<<endl;
-					int rulesInValidState = stt[stt[0].next_states[j]].countOfRules;
-					int nextValidState = stt[0].next_states[j];
-					stt[nextValidState].currentRules[rulesInValidState] = stt[0].currentRules[i];
-					stt[nextValidState].currentRules[rulesInValidState].dot_pos++;
-					stt[nextValidState].countOfRules++;
-				}
-				break;
-			} 
-		}
-	}
-	for(int i = 0;i<=state_count;i++){
-		cout << "State "<<i<<endl;
-		states currentState = stt[i];
-		cout << "Rules "<<endl;
-		for(int j = 0;j<currentState.countOfRules;j++){
-			cout <<"	Rule "<<j<<" : "<<currentState.currentRules[j].rule<<" with dot before pos "<< currentState.currentRules[j].dot_pos<<endl;
-		}
+					//cout<<"***************Transition char num "<< j << endl;
+					if(stt[itr].currentRules[i].rule.at(stt[itr].currentRules[i].dot_pos) == transition_char[j])
+					{
+						cout<<"         Char matched "<< transition_char[j] << endl;
+						if(!stt[itr].isValid[j])
+						{
 		
-		cout << "Next States for chars  "<<endl;
-		for(int j = 0;j<num_transition_char;j++){
-			if(currentState.isValid[j]){
-				cout<<"		"<<transition_char[j]<<" : "<<currentState.next_states[j]<<endl;
+							stt[itr].next_states[j] = state_count;
+							stt[itr].isValid[j] = true;
+							cout<<"            State Created "<< state_count;
+							
+							stt[state_count].state_num = state_count;
+							stt[state_count].countOfRules = 0;
+
+							//TODO: We have to add a for lopp which will check all kind of transitions given a character	
+							stt[state_count].currentRules[stt[state_count].countOfRules] = stt[itr].currentRules[i];
+							stt[state_count].currentRules[stt[state_count].countOfRules].dot_pos++;	
+							stt[state_count].countOfRules++;
+							cout << ", Rules created " << stt[state_count].countOfRules << endl;
+							if(transition_char[j] == '$')
+							{
+								stt[state_count].isEndState = true; 
+							}
+							else
+							{
+								stt[state_count].isEndState = false;
+							}
+							state_count++;
+						}
+						else
+						{
+							cout<<"            In second loop for "<< transition_char[j] << endl;
+							int rulesInValidState = stt[stt[itr].next_states[j]].countOfRules;
+							int nextValidState = stt[itr].next_states[j];
+							stt[nextValidState].currentRules[rulesInValidState] = stt[itr].currentRules[i];
+							stt[nextValidState].currentRules[rulesInValidState].dot_pos++;
+							stt[nextValidState].countOfRules++;
+						}
+						break;
+					} 
+				}
 			}
 		}
+		else
+		{
+			cout << "End State reached at " << itr << endl;
+			continue; 
+		}
 	}
+
+//	for(int i = 0;i<=state_count;i++){
+//		cout << "State "<<i<<endl;
+//		states currentState = stt[i];
+//		cout << "Rules "<<endl;
+//		for(int j = 0;j<currentState.countOfRules;j++){
+//			cout <<"	Rule "<<j<<" : "<<currentState.currentRules[j].rule<<" with dot before pos "<< currentState.currentRules[j].dot_pos<<endl;
+//		}
+//		
+//		cout << "Next States for chars  "<<endl;
+//		for(int j = 0;j<num_transition_char;j++){
+//			if(currentState.isValid[j]){
+//				cout<<"		"<<transition_char[j]<<" : "<<currentState.next_states[j]<<endl;
+//			}
+//		}
+//	}
 }
 
 
@@ -172,16 +199,5 @@ int main(){
 	
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
