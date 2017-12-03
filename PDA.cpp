@@ -47,6 +47,13 @@ using namespace std;
 bool pda(char inputChars, Comparison *compiled_table){
     bool compare = false;
     bool match_det = false;
+    
+
+	if(DEBUG)
+	{
+        	cout<< "Current Index " << curr_index << ", Input char : "<<inputChars << ", Compiled table " <<compiled_table << endl;
+	}
+
     switch(state){
         case INITIAL:
             if(inputChars == componentsTochars[curr_index]){
@@ -101,7 +108,7 @@ bool pda(char inputChars, Comparison *compiled_table){
 		{
     			if(DEBUG)
 			{
-        			cout<< "Input char : "<<inputChars << ", Operation " <<compiled_table[k].operation << ", Comparison type " << compiled_table[k].comparisonValueTypeRight << ", COMP value " << char_count[compiled_table[k].right] << endl;
+        			cout<< "Current Index " << curr_index << ", Input char : "<<inputChars << ", Operation " <<compiled_table[k].operation << ", Comparison type " << compiled_table[k].comparisonValueTypeRight << ", COMP value " << char_count[compiled_table[k].right] << endl;
 			}
 			
 			switch(compiled_table[k].operation){
