@@ -26,12 +26,9 @@ struct states{
 	bool isEndState;				
 	bool isReductionState;
     
-    int gotoStates[NUM_CHAR];
-    bool isGotoStatesValid[NUM_CHAR];
-    
-
-
-    bool seenExpandedStatesForType[NUM_RULES];
+	int gotoStates[NUM_CHAR]; //We don't need this technically, as we get the info by popping stuff from stack
+	bool isGotoStatesValid[NUM_CHAR];
+	bool seenExpandedStatesForType[NUM_RULES];
 };
 
 char transition_char[NUM_CHAR];
@@ -39,11 +36,12 @@ unsigned int num_transition_char = 0;
 char rule_type_char[NUM_CHAR];
 unsigned int num_rule_type_char = 0;
 
-
 int rule_count = 0;
 grammer lr0[NUM_RULES];
 states stt[NUM_STATES]; //State Transition Table
 int state_count = 0;
+
+stack<char> pda_stack;
 
 int sameCharRuleCount = 0;
 
@@ -249,22 +247,6 @@ int giveCharPositionInTransitionCharArray(char ch){
 }
 
 void generateGotoStates(){
-/*struct states{
-    unsigned int state_num;		// Number assigned to this state, such as S0, S1, etc
-	grammer currentRules[NUM_RULES]; // What rules this states hold
-	int next_states[NUM_CHAR]; 	// The states that are child of this
-	bool isValid[NUM_CHAR];
-	unsigned countOfRules;
-	bool isEndState;				
-	bool isReductionState;
-    
-    int gotoStates[NUM_CHAR];
-    bool isGotoStatesValid[NUM_CHAR];
-    
-
-
-    bool seenExpandedStatesForType[NUM_RULES];
-};*/
     for(int i = 0;i<state_count;i++){
         for(int j = 0;j<num_transition_char;j++){
             if(stt[i].isValid[j] && stt[stt[i].next_states[j]].isReductionState){
@@ -274,6 +256,9 @@ void generateGotoStates(){
                     stt[i].gotoStates[j] = stt[i].next_states[nextStateNumberForNewType];
                     stt[i].isGotoStatesValid[j] = true;
                 }
+		else if(nextStateNumberForNewType != -1){
+			
+		}
             }
         }
     }
@@ -319,7 +304,6 @@ void createTable(void)
                                 stt[state_count].state_num = state_count;
                                 stt[state_count].countOfRules = 0;
 
-                                //TODO: We have to add a for lopp which will check all kind of transitions given a character	
                                 stt[state_count].currentRules[stt[state_count].countOfRules] = stt[itr].currentRules[i];
                                 stt[state_count].currentRules[stt[state_count].countOfRules].dot_pos++;	
                                 stt[state_count].countOfRules++;
@@ -354,7 +338,7 @@ void createTable(void)
 		}
         combineEquivalentStates();
 	}
-    generateGotoStates();
+   
 
     cout<<"Number of Generated States : "<<state_count<<endl;
 	for(int i = 0;i<state_count;i++){
@@ -387,13 +371,78 @@ void createTable(void)
         }
 	}
 }
+/*struct states{
+    unsigned int state_num;		// Number assigned to this state, such as S0, S1, etc
+	grammer currentRules[NUM_RULES]; // What rules this states hold
+	int next_states[NUM_CHAR]; 	// The states that are child of this
+	bool isValid[NUM_CHAR];
+	unsigned countOfRules;
+	bool isEndState;				
+	bool isReductionState;
+    
+	int gotoStates[NUM_CHAR]; //We don't need this technically, as we get the info by popping stuff from stack
+	bool isGotoStatesValid[NUM_CHAR];
+	bool seenExpandedStatesForType[NUM_RULES];
+};*/
+
+bool runPda(char inp)
+{
+	static int curr_state = 0; //Initialize State, S0
+	int numOfPops = 0;
+	int stateAtStackTop = 0;
+
+	// First thing first, Push the element and its state to the PDA stack
+	transitionCharIndex = giveCharPositionInTransitionCharArray(inp);
+	if(stt[curr_state].isValid)
+	{
+		// Push the current character and its next state to the stack, in this order
+		pda_stack.push(inp);
+		pda_stack.push(stt[curr_state].next_states[transitionCharIndex]);
+		
+		// update the current state
+		curr_state = stt[curr_state].next_states[transitionCharIndex];
+
+		stateAtStackTop = pda_stack.top();
+		// Reduce the states at the top
+		if(stt[stateAtStackTop].isEndState)
+		{
+			return 1; //Regex matched as it reached the end state
+		}
+		else if(stt[stateAtStackTop].isReductionState)
+		{
+			// Number of pops is double of the length of right side rule as there are two push for each character
+			numOfPops = stt[stateAtStackTop].currentRules[transitionCharindex].length() * 2;
+
+				
+		}
+	}
+	else
+	{
+		cout << "Accessed Invalid State Number " << endl;
+	}
+	return 0;
+}
 
 
 int main(){
+	bool matched;
 
 	compile();
-    createTable();
-	
+	createTable();
+
+	ifstream f_in;
+	f_in.open("regexInput.txt");
+
+	for(int i=0; i<f_in.length(); i++)
+	{
+		matched = runPda(f_in.at(i));
+		
+		if(matched == 1)
+		{
+			cout << "Regex Matched" << endl;
+			break;
+		}
+	}
 	return 0;
 }
 
