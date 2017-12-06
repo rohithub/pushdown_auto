@@ -393,6 +393,7 @@ bool runPda(char inp)
 	int numOfPops = 0;
 	int stateAtStackTop = 0;
 	int transitionCharIndex = 0;
+	char topOfStack;
 
 	// First thing first, Push the element and its state to the PDA stack
 	transitionCharIndex = giveCharPositionInTransitionCharArray(inp);
@@ -410,15 +411,28 @@ bool runPda(char inp)
 		// Reduce the states at the top
 		if(stt[stateAtStackTop].isEndState)
 		{
+			cout << "End State Reached " << endl;
 			return 1; //Regex matched as it reached the end state
 		}
 		else if(stt[stateAtStackTop].isReductionState)
 		{
+			cout << "Reduction state reached at state " << stateAtStackTop << endl;
 			// Number of pops is double of the length of right side rule as there are two push for each character
 			numOfPops = stt[stateAtStackTop].currentRules[transitionCharIndex].rule.length() * 2;
+			for(int j=0; j<numOfPops; j++)
+			{
+				pda_stack.pop(); //Keep popping the stack upto numOfPops
+			}
 
-			
+			//Just peek the top of the stack to know the last state worked on
+			topOfStack = pda_stack.top(); 
+
+			//Based on top of the current stack and 'E', decide the next state to push
+			pda_stack.push(stt[stateAtStackTop].currentRules[transitionCharIndex].type);
+			pda_stack.push(stt[topOfStack].next_states[transitionCharIndex]);
 		}
+
+		cout << " Current Stack Size "<< pda_stack.size() << endl;
 	}
 	else
 	{
@@ -451,6 +465,7 @@ int main(){
 	
 	while(getline(f_in, inputRegexLine))	//For each regex line in the file
 	{
+		cout << "Input Regex: " << inputRegexLine << endl;
 		resetPda(); //Reset PDA before next regex use
 		for(int i=0; i<inputRegexLine.length(); i++)
 		{
