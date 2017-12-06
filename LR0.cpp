@@ -1,10 +1,12 @@
 #include<iostream>
 #include<fstream>
 #include<string>
+#include<stack>
 
 #define DEBUG 		true
 #define MAX_CHARS	26
 
+#define REGEX_MAX_LEN	255
 #define NUM_RULES	10
 #define NUM_STATES	250
 #define NUM_CHAR	128
@@ -390,6 +392,7 @@ bool runPda(char inp)
 	static int curr_state = 0; //Initialize State, S0
 	int numOfPops = 0;
 	int stateAtStackTop = 0;
+	int transitionCharIndex = 0;
 
 	// First thing first, Push the element and its state to the PDA stack
 	transitionCharIndex = giveCharPositionInTransitionCharArray(inp);
@@ -402,7 +405,8 @@ bool runPda(char inp)
 		// update the current state
 		curr_state = stt[curr_state].next_states[transitionCharIndex];
 
-		stateAtStackTop = pda_stack.top();
+		stateAtStackTop = pda_stack.top(); //Assuming that .top() is same as peek()
+
 		// Reduce the states at the top
 		if(stt[stateAtStackTop].isEndState)
 		{
@@ -411,9 +415,9 @@ bool runPda(char inp)
 		else if(stt[stateAtStackTop].isReductionState)
 		{
 			// Number of pops is double of the length of right side rule as there are two push for each character
-			numOfPops = stt[stateAtStackTop].currentRules[transitionCharindex].length() * 2;
+			numOfPops = stt[stateAtStackTop].currentRules[transitionCharIndex].rule.length() * 2;
 
-				
+			
 		}
 	}
 	else
@@ -423,24 +427,40 @@ bool runPda(char inp)
 	return 0;
 }
 
+void resetPda(void)
+{
+	while(!pda_stack.empty())
+	{
+		pda_stack.pop();
+	}
+}
 
 int main(){
 	bool matched;
-
+	string inputRegexLine;
 	compile();
 	createTable();
 
 	ifstream f_in;
 	f_in.open("regexInput.txt");
-
-	for(int i=0; i<f_in.length(); i++)
+	if(!f_in)
 	{
-		matched = runPda(f_in.at(i));
-		
-		if(matched == 1)
+		cout << "Invalid Regex Input file " << endl;
+		return -1;
+	}
+	
+	while(getline(f_in, inputRegexLine))	//For each regex line in the file
+	{
+		resetPda(); //Reset PDA before next regex use
+		for(int i=0; i<inputRegexLine.length(); i++)
 		{
-			cout << "Regex Matched" << endl;
-			break;
+			matched = runPda(inputRegexLine.at(i));
+			
+			if(matched == 1)
+			{
+				cout << "Regex Matched" << endl;
+				break;
+			}
 		}
 	}
 	return 0;
