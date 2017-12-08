@@ -3,12 +3,12 @@
 #include<string>
 #include<stack>
 
-#define MAX_CHARS	26
+#define MAX_CHARS	    26
 #define REGEX_MAX_LEN	255
-#define NUM_RULES	10
-#define NUM_STATES	250
-#define NUM_CHAR	128
-#define DEBUG       false
+#define NUM_RULES       10
+#define NUM_STATES      250
+#define NUM_CHAR        128
+#define DEBUG           false
 
 using namespace std;
 
@@ -42,7 +42,8 @@ grammer lr0[NUM_RULES];
 states stt[NUM_STATES]; //State Transition Table
 int state_count = 0;
 
-stack<char> pda_stack;
+char reductionStateEntryChar = '0';
+stack<int> pda_stack;
 
 int sameCharRuleCount = 0;
 
@@ -354,7 +355,6 @@ void createTable(void)
             states currentState = stt[i];
             cout << "Rules "<<endl;
             for(int j = 0;j<currentState.countOfRules;j++){
-                //cout <<"	Rule "<<j<<" : "<<currentState.currentRules[j].rule<<" with dot before pos "<< currentState.currentRules[j].dot_pos<<endl;
                 cout <<"	Rule "<<j<<" : "<<printRuleWithDot(currentState.currentRules[j])<<endl;
             }
             
@@ -395,11 +395,42 @@ void resetPda()
 	{
 		pda_stack.pop();
 	}
-    pda_stack.push(convertIntToChar(0));
+    pda_stack.push(0);
     runPDACurrentState = 0;
 }
 
+int findRuleNoWhichIsToBeReduced(char ch, states inputState){
 
+/*struct states{
+    unsigned int state_num;		// Number assigned to this state, such as S0, S1, etc
+	grammer currentRules[NUM_RULES]; // What rules this states hold
+	int next_states[NUM_CHAR]; 	// The states that are child of this
+	bool isValid[NUM_CHAR];
+	unsigned countOfRules;
+	bool isEndState;				
+	bool isReductionState;
+    
+	int gotoStates[NUM_CHAR]; //We don't need this technically, as we get the info by popping stuff from stack
+	bool isGotoStatesValid[NUM_CHAR];
+	bool seenExpandedStatesForType[NUM_RULES];
+};
+struct grammer{
+	char type; 		// This is left side of the rule
+	string rule; 		// This is the right side of the rule
+	unsigned int dot_pos;	// Tells where the dot is in the current grammer
+};*/
+
+
+    for(int i = 0;i<inputState.countOfRules;i++){
+        grammer oneRule = inputState.currentRules[i];
+        if(oneRule.dot_pos == oneRule.rule.length()){
+            if(oneRule.rule.at(oneRule.dot_pos - 1) == ch){
+                return i;
+            }
+        }
+    }
+    return -1;
+}
 
 int runPda(char inp)
 {
@@ -413,46 +444,70 @@ int runPda(char inp)
 	transitionCharIndex = giveCharPositionInTransitionCharArray(inp);
 	if(stt[runPDACurrentState].isValid[transitionCharIndex])
 	{
-		// Push the current character and its next state to the stack, in this order
-		pda_stack.push(inp);
-		pda_stack.push(convertIntToChar(stt[runPDACurrentState].next_states[transitionCharIndex]));
+		if(DEBUG){
+            cout << "**********************************************"<<endl;
+            cout << "Current char : "<<inp<<endl;
+            cout << "Current state : "<<runPDACurrentState<<endl;
+        }
+        
+        // Push the current character and its next state to the stack, in this order
+		pda_stack.push(transitionCharIndex);
+		pda_stack.push(stt[runPDACurrentState].next_states[transitionCharIndex]);
 		
 		// update the current state
 		runPDACurrentState = stt[runPDACurrentState].next_states[transitionCharIndex];
+		
+        if(DEBUG){
+            cout << "Next state : "<<runPDACurrentState<<endl;
+        }
 
-		stateAtStackTop = convertCharToInt(pda_stack.top()); //Assuming that .top() is same as peek()
+		stateAtStackTop = pda_stack.top(); //Assuming that .top() is same as peek()
 
 		// Reduce the states at the top
-
+        
+        reductionStateEntryChar = inp;
 		while(stt[stateAtStackTop].isReductionState && !stt[stateAtStackTop].isEndState)
 		{
+            int ruleNo = findRuleNoWhichIsToBeReduced(reductionStateEntryChar, stt[stateAtStackTop]);
+
 			if(DEBUG){
+                cout << "----------------------------------------------"<<endl;
                 cout << "Reduction state reached at state " << stateAtStackTop << endl;
+                cout << "Entering char : "<<reductionStateEntryChar<<endl;
+                cout << "Reducing on rule number : "<<ruleNo<<endl;
 			}
             // Number of pops is double of the length of right side rule as there are two push for each character
-			numOfPops = stt[stateAtStackTop].currentRules[0].rule.length() * 2;
+			numOfPops = stt[stateAtStackTop].currentRules[ruleNo].rule.length() * 2;
 			for(int j=0; j<numOfPops; j++)
 			{
 				pda_stack.pop(); //Keep popping the stack upto numOfPops
 			}
 
 			//Just peek the top of the stack to know the last state worked on
-			stateAtTopOfStack = convertCharToInt(pda_stack.top()); 
+			stateAtTopOfStack = pda_stack.top(); 
 
 			//Based on top of the current stack and 'E', decide the next state to push
-			pda_stack.push(stt[stateAtStackTop].currentRules[0].type);
-	        
-            transitionCharIndex = giveCharPositionInTransitionCharArray(stt[stateAtStackTop].currentRules[0].type);
+            transitionCharIndex = giveCharPositionInTransitionCharArray(stt[stateAtStackTop].currentRules[ruleNo].type);  // nw this has reduced char
+			
+            pda_stack.push(transitionCharIndex);
+	        reductionStateEntryChar = stt[stateAtStackTop].currentRules[ruleNo].type;
+            
             
             if(!stt[stateAtTopOfStack].isValid[transitionCharIndex]){
                 cout << "Invalid input char"<<endl;
                 resetPda();
                 return 0;
             }
-            pda_stack.push(convertIntToChar(stt[stateAtTopOfStack].next_states[transitionCharIndex]));
+            pda_stack.push(stt[stateAtTopOfStack].next_states[transitionCharIndex]);
             stateAtStackTop = stt[stateAtTopOfStack].next_states[transitionCharIndex];
 		}
-		
+        
+        if(DEBUG){
+            cout << " Final next state after reduction : "<<stateAtStackTop<<endl;
+            cout << " Stack size : "<<pda_stack.size()<<endl;
+        }
+	    
+        
         if(stt[stateAtStackTop].isEndState)
 		{
 			if(DEBUG){
@@ -463,18 +518,23 @@ int runPda(char inp)
         
         runPDACurrentState = stateAtStackTop;
 
-		if(DEBUG){
-            cout << " Current Stack Size "<< pda_stack.size() << endl;
-	    }
     }
 	else{
         if(DEBUG){
-		    cout << "Accessed Invalid State Number " << endl;
+            cout << "    Current Stack Size "<< pda_stack.size() << endl;
+            cout << "    State number : "<<runPDACurrentState<<endl;
+            cout << "    Input char : "<<inp<<endl;
+            cout << "    Input char index : "<<transitionCharIndex<<endl;
+		    cout << "    Accessed Invalid State Number " << endl;
 	    }
         resetPda();
         return 0;
     }
 	return -1;
+}
+
+void createReductionRegex(){
+    
 }
 
 
@@ -516,6 +576,8 @@ int main(){
             }
 		}
 	}
+
+    createReductionRegex();
 	return 0;
 }
 

@@ -1,6 +1,3 @@
-S>E$
-E>E+(E)
-E>d
-E>a
-E>b
-E>c
+S>A$
+A>aA
+A>b
