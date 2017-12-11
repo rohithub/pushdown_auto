@@ -455,7 +455,7 @@ bool innerContinue = true;
                 outerTransitionChar = transition_char[j];
                 reducedStt[i].validTransitionStrings[reducedStt[i].numberOfTransitions] += transition_char[j];
                 states nextStateAfterSeeingChar = stt[stt[i].next_states[j]];
-                while(nextStateAfterSeeingChar.isReductionState){
+                /*while(nextStateAfterSeeingChar.isReductionState){
                     int ruleNoToBeReduced = findRuleNoWhichIsToBeReduced(outerTransitionChar,nextStateAfterSeeingChar);
                     outerTransitionChar = nextStateAfterSeeingChar.currentRules[ruleNoToBeReduced].type;
                     int charIndex = giveCharPositionInTransitionCharArray(outerTransitionChar);
@@ -463,17 +463,16 @@ bool innerContinue = true;
                         nextStateAfterSeeingChar = stt[stt[i].next_states[charIndex]];
                     }
                     else{
-                        outerContinue = false;
                         break;
                     }
-                }
+                }*/
                 if(outerContinue){ 
                     for(int k = 0;k<num_transition_char;k++){
                         if(nextStateAfterSeeingChar.isValid[k]){
                             innerTransitionChar = transition_char[k];
                             reducedStt[i].validTransitionStrings[reducedStt[i].numberOfTransitions] += transition_char[k];
                             states innerNextState = stt[nextStateAfterSeeingChar.next_states[k]];
-                            while(innerNextState.isReductionState){
+                            /*while(innerNextState.isReductionState){
                                 cout<<"Going into innerNextState : "<<innerNextState.state_num<<" for : "<<innerTransitionChar<<endl;
                                 int ruleNoToBeReduced = findRuleNoWhichIsToBeReduced(innerTransitionChar,innerNextState);
                                 innerTransitionChar = innerNextState.currentRules[ruleNoToBeReduced].type;
@@ -486,7 +485,7 @@ bool innerContinue = true;
                                     innerContinue = false;
                                     break;
                                 }
-                            }
+                            }*/
                             if(innerContinue){
 
                             reducedStt[i].nextStateForInputString[reducedStt[i].numberOfTransitions] = innerNextState.state_num;
