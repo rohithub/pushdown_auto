@@ -8,7 +8,7 @@
 #define NUM_RULES       10
 #define NUM_STATES      250
 #define NUM_CHAR        128
-#define DEBUG           false
+#define DEBUG           true
 
 using namespace std;
 
@@ -32,6 +32,13 @@ struct states{
 	bool seenExpandedStatesForType[NUM_RULES];
 };
 
+struct reducedStates{
+    unsigned int state_num;
+    string validTransitionStrings[NUM_CHAR];
+    int nextStateForInputString[NUM_CHAR];
+    int numberOfTransitions;
+};
+
 char transition_char[NUM_CHAR];
 unsigned int num_transition_char = 0;
 char rule_type_char[NUM_CHAR];
@@ -40,6 +47,7 @@ unsigned int num_rule_type_char = 0;
 int rule_count = 0;
 grammer lr0[NUM_RULES];
 states stt[NUM_STATES]; //State Transition Table
+reducedStates reducedStt[NUM_STATES]; //State Transition Table
 int state_count = 0;
 
 char reductionStateEntryChar = '0';
@@ -120,7 +128,6 @@ int compile(void)
 		cout<<"File not found";
 		return 1;
 	}
-
 		
 }
 
@@ -380,25 +387,6 @@ void createTable(void)
     }
 }
 
-char convertIntToChar(int n){
-    char ch = n + '0';
-    return ch;
-}
-
-int convertCharToInt(char ch){
-    return (int)(ch - '0');
-}
-
-void resetPda()
-{
-	while(!pda_stack.empty())
-	{
-		pda_stack.pop();
-	}
-    pda_stack.push(0);
-    runPDACurrentState = 0;
-}
-
 int findRuleNoWhichIsToBeReduced(char ch, states inputState){
 
 /*struct states{
@@ -431,6 +419,131 @@ struct grammer{
     }
     return -1;
 }
+void expandStateTransitionTable(int width){
+    
+/*struct reducedStates{
+    unsigned int state_num;
+    string[NUM_CHAR] validTransitionStrings;
+    int[] numCharsInSearchString;
+    int[] nextStateForInputString;
+    int numberOfTransitions;
+    bool[] push_valid;   //false if pop
+    int numberOfPushes;
+    int numberOfPops;
+}
+struct states{
+    unsigned int state_num;		// Number assigned to this state, such as S0, S1, etc
+	grammer currentRules[NUM_RULES]; // What rules this states hold
+	int next_states[NUM_CHAR]; 	// The states that are child of this
+	bool isValid[NUM_CHAR];
+	unsigned countOfRules;
+	bool isEndState;				
+	bool isReductionState;
+    
+	int gotoStates[NUM_CHAR]; //We don't need this technically, as we get the info by popping stuff from stack
+	bool isGotoStatesValid[NUM_CHAR];
+	bool seenExpandedStatesForType[NUM_RULES];
+};*/
+char outerTransitionChar;
+char innerTransitionChar;
+bool outerContinue = true;
+bool innerContinue = true;
+    for(int i = 0;i<state_count;i++){
+        states currentState = stt[i];
+        for(int j = 0;j<num_transition_char;j++){
+            if(currentState.isValid[j]){
+                outerTransitionChar = transition_char[j];
+                reducedStt[i].validTransitionStrings[reducedStt[i].numberOfTransitions] += transition_char[j];
+                states nextStateAfterSeeingChar = stt[stt[i].next_states[j]];
+                while(nextStateAfterSeeingChar.isReductionState){
+                    int ruleNoToBeReduced = findRuleNoWhichIsToBeReduced(outerTransitionChar,nextStateAfterSeeingChar);
+                    outerTransitionChar = nextStateAfterSeeingChar.currentRules[ruleNoToBeReduced].type;
+                    int charIndex = giveCharPositionInTransitionCharArray(outerTransitionChar);
+                    if(currentState.isValid[charIndex]){
+                        nextStateAfterSeeingChar = stt[stt[i].next_states[charIndex]];
+                    }
+                    else{
+                        outerContinue = false;
+                        break;
+                    }
+                }
+                if(outerContinue){ 
+                    for(int k = 0;k<num_transition_char;k++){
+                        if(nextStateAfterSeeingChar.isValid[k]){
+                            innerTransitionChar = transition_char[k];
+                            reducedStt[i].validTransitionStrings[reducedStt[i].numberOfTransitions] += transition_char[k];
+                            states innerNextState = stt[nextStateAfterSeeingChar.next_states[k]];
+                            while(innerNextState.isReductionState){
+                                cout<<"Going into innerNextState : "<<innerNextState.state_num<<" for : "<<innerTransitionChar<<endl;
+                                int ruleNoToBeReduced = findRuleNoWhichIsToBeReduced(innerTransitionChar,innerNextState);
+                                innerTransitionChar = innerNextState.currentRules[ruleNoToBeReduced].type;
+                                int charIndex = giveCharPositionInTransitionCharArray(innerTransitionChar);
+                                if(currentState.isValid[charIndex]){
+                                    cout<<"Changing innerNextState : "<<innerNextState.state_num<<endl;
+                                    innerNextState = stt[currentState.next_states[charIndex]];
+                                }
+                                else{
+                                    innerContinue = false;
+                                    break;
+                                }
+                            }
+                            if(innerContinue){
+
+                            reducedStt[i].nextStateForInputString[reducedStt[i].numberOfTransitions] = innerNextState.state_num;
+                            reducedStt[i].numberOfTransitions++;
+                            reducedStt[i].validTransitionStrings[reducedStt[i].numberOfTransitions] += transition_char[j];
+                            }
+                            else{
+                                innerContinue = true;
+                            }
+                        }
+                    }
+                }
+                else{
+                    outerContinue = true;
+                }
+                reducedStt[i].validTransitionStrings[reducedStt[i].numberOfTransitions] = "";
+            }
+        }
+    }
+    
+    if(DEBUG){
+        cout <<"Reduced state transition table "<<endl;
+        for(int i = 0;i<state_count;i++){
+            reducedStates one = reducedStt[i];
+            if(one.numberOfTransitions != 0){
+                cout << "State "<<i<<endl;
+                for(int j = 0;j<one.numberOfTransitions;j++){
+                    cout <<"    "<<one.validTransitionStrings[j]<<" : "<<one.nextStateForInputString[j]<<endl;
+                }
+                cout << "-------------------------------------------------"<<endl;
+            }
+        }
+        
+    }
+
+
+}
+
+char convertIntToChar(int n){
+    char ch = n + '0';
+    return ch;
+}
+
+int convertCharToInt(char ch){
+    return (int)(ch - '0');
+}
+
+void resetPda()
+{
+	while(!pda_stack.empty())
+	{
+		pda_stack.pop();
+	}
+    pda_stack.push(0);
+    runPDACurrentState = 0;
+}
+
 
 int runPda(char inp)
 {
@@ -553,8 +666,8 @@ int main(){
 	}
     cout << "Finished compiling"<<endl;
     cout << "------------------------"<<endl;
-    
-    while(getline(f_in, inputRegexLine))	//For each regex line in the file
+    expandStateTransitionTable(2);
+    /*while(getline(f_in, inputRegexLine))	//For each regex line in the file
 	{
         matched = -1;
 		cout << "Input Regex: " << inputRegexLine << endl;
@@ -575,7 +688,7 @@ int main(){
                 break;
             }
 		}
-	}
+	}*/
 
     createReductionRegex();
 	return 0;
